@@ -1,0 +1,219 @@
+package com.skilldistillery.cards;
+
+import java.util.Scanner;
+
+import com.skilldistillery.cards.Dealer;
+import com.skilldistillery.cards.Player;
+import com.skilldistillery.cards.Venue;
+
+public class BlackJackTable {
+
+	private Dealer dealer;
+	private Player player;
+	private Venue venue = new Venue();
+	private final int MIN_DECK_SIZE = 13;
+	private final int DEALER_HIT_MIN = 17;
+
+	public void startBlackJack(Scanner scanner) {
+		System.out.println("Welcome to BlackJack!");
+		System.out.println();
+		System.out.println("Please Read Game Information Below:");
+		System.out.println("\t1. Card point values:");
+		System.out.println("\t\ta. Aces will have a value of 11.");
+		System.out.println("\t\tb. Jacks, Queens, and Kings are each worth 10 points.");
+		System.out.println("\t\tc. All other cards are face value.");
+		System.out.println("\t2. The Goal is to get 21 points or be the closest to 21 without going over.");
+		System.out.println("\t3. We will be playing with one deck of 52 cards.");
+		System.out.println("\t4. The dealer will let you know when starting a new deck.");
+	
+		dealer = new Dealer();
+		player = new Player();
+	
+		play(scanner);
+	}
+
+	private void play(Scanner scanner) {
+
+		System.out.println();
+		player.addCardPlayer(dealer.dealCards());
+		System.out.println("\tPlayer's " + player);
+
+		dealer.addCardPlayer(dealer.dealCards());
+		dealer.firstCardDown();
+
+		player.addCardPlayer(dealer.dealCards());
+		System.out.println("\tPlayer's " + player);
+
+		dealer.addCardPlayer(dealer.dealCards());
+		dealer.firstCardDown();
+
+		printPlayerCurrentValue();
+
+		checkForBlackJack(scanner);
+		hitOrStand(scanner);
+	}
+
+	private void hitOrStand(Scanner scanner) {
+
+		System.out.println("Do you want to hit or stand?");
+		String hs = scanner.next().toLowerCase();
+
+		switch (hs) {
+		case "h":
+		case "hit":
+			hit(scanner);
+			break;
+		case "s":
+		case "stand":
+		case "stay":
+			stand(scanner);
+			break;
+		default:
+			System.out.println("Input error: " + hs + "\nPlease try again.");
+			hitOrStand(scanner);
+			break;
+		}
+	}
+
+	private void printPlayerCurrentValue() {
+		System.out.println();
+		System.out.println("\tPlayer Hand Value: " + player.askHandValue());
+		System.out.println();
+
+	}
+
+	private void printDealerCurrentValue() {
+		System.out.println();
+		System.out.println("\tDealer Hand Value: " + dealer.askHandValue());
+		System.out.println();
+
+	}
+
+	private void hit(Scanner scanner) {
+		player.addCardPlayer(dealer.dealCards());
+		System.out.println("\tPlayer's " + player);
+		printPlayerCurrentValue();
+
+		checkValues(scanner);
+		playersTurn(scanner);
+	}
+
+	private void stand(Scanner scanner) {
+		dealerPlayAfterStand(scanner);
+	}
+
+	private void playersTurn(Scanner scanner) {
+		if (player.askHandValue() < 21) {
+			hitOrStand(scanner);
+		} else {
+			checkValues(scanner);
+			checkPush(scanner);
+		}
+	}
+
+	private void dealerPlayAfterStand(Scanner scanner) {
+		if (dealer.askHandValue() < DEALER_HIT_MIN) {
+			dealer.addCardPlayer(dealer.dealCards());
+			dealer.firstCardDown();
+		} else {
+			checkValues(scanner);
+			checkPush(scanner);
+		}
+		dealerPlayAfterStand(scanner);
+	}
+
+	private void checkPush(Scanner scanner) {
+		if (player.askHandValue() == dealer.askHandValue()) {
+			dealerShowsAllCards();
+			System.out.println("It is a push (tie). ");
+			playAgain(scanner);
+		}
+		checkHighest(scanner);
+	}
+
+	private void checkHighest(Scanner scanner) {
+		if (player.askHandValue() > dealer.askHandValue()) {
+			dealerShowsAllCards();
+			System.out.println("You win with a higher hand value!");
+			playAgain(scanner);
+		} else {
+			dealerShowsAllCards();
+			System.out.println("You loose with a lower hand value.");
+			playAgain(scanner);
+		}
+	}
+
+	private void checkValues(Scanner scanner) {
+		if (player.isTwentyOne()) {
+			dealerShowsAllCards();
+			System.out.println("You win with 21!");
+			playAgain(scanner);
+		} else if (dealer.isBust()) {
+			dealerShowsAllCards();
+			System.out.println("Dealer hand is a bust, and you win!");
+			playAgain(scanner);
+		} else if (dealer.isTwentyOne()) {
+			dealerShowsAllCards();
+			System.out.println("You loose, and the dealer wins with 21.");
+			playAgain(scanner);
+		} else if (player.isBust()) {
+			dealerShowsAllCards();
+			System.out.println("Your hand is a bust, and the dealer wins.");
+			playAgain(scanner);
+		}
+	}
+
+	private void checkForBlackJack(Scanner scanner) {
+		if (player.isBlackJack() && dealer.isBlackJack()) {
+			dealerShowsAllCards();
+			System.out.println("It's a draw! You and the dealer both have BlackJack.");
+			playAgain(scanner);
+		} else if (player.isBlackJack()) {
+			dealerShowsAllCards();
+			System.out.println("You win with BlackJack!");
+			playAgain(scanner);
+		} else if (dealer.isBlackJack()) {
+			dealerShowsAllCards();
+			System.out.println("The dealer wins with BlackJack.");
+			playAgain(scanner);
+		}
+	}
+
+	private void dealerShowsAllCards() {
+		System.out.println("Dealer turns over first card...");
+		System.out.println("\tDealer's " + dealer);
+		printDealerCurrentValue();
+	}
+
+	private void playAgain(Scanner scanner) {
+		System.out.println();
+		System.out.println("Do you want to play another hand of BlackJack?");
+
+		String again = scanner.next().toLowerCase();
+		switch (again) {
+		case "yes":
+		case "y":
+			if (dealer.checkCurrentDeckSize() >= MIN_DECK_SIZE) {
+				player.clear();
+				dealer.clear();
+				play(scanner);
+			} else {
+				player.clear();
+				dealer.clear();
+				dealer.callNewDeck();
+				System.out.println();
+				System.out.println("******** Starting a new deck of cards. ********");
+				play(scanner);
+			}
+			break;
+		case "no":
+		case "n":
+			venue.venueMenu(scanner);
+			break;
+		default:
+			System.out.println("Input error: " + again + "\nPlease try again.");
+			playAgain(scanner);
+			break;
+		}
+	}
+}
